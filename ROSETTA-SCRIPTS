@@ -1,0 +1,37 @@
+Minimization
+
+Parsed Command line: 
+minimize.macosclangrelease -l list -use_input_sc -ex1 -ex2 -ex2aro -run::min_type lbfgs_armijo_nonmonotone -extrachi_cutoff 1 -no_his_his_pairE true -no_optH false -ignore_unrecognized_res
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Tetrad replacemet for Alanine
+
+Parser Command line:
+rosetta_scripts.macosclangrelease -l list -parser:protocol ifa.xml -use_input_sc -ex1 -ex2
+
+XML Script:
+<ROSETTASCRIPTS>
+<SCOREFXNS>
+            <ScoreFunction name="ref2015" weights="ref2015"/>
+    </SCOREFXNS>
+    <TASKOPERATIONS>
+                                </TASKOPERATIONS>
+    <MOVERS>
+            <MutateResidue name="mutate" target="xxx" new_res="ALA" />
+            <MutateResidue name="mutate2" target="xxx" new_res="ALA" />
+            <MutateResidue name="mutate3" target="xxx" new_res="ALA" />
+            <MutateResidue name="mutate4" target="xxx" new_res="ALA" />
+            <Prepack name="ppk" jump_number="1"/>
+            <MinMover name="sc_bb_min" bb="1" chi="1" jump="ALL" cartesian="0" type="dfpmin_armijo_nonmonotone" tolerance="0.01" max_iter="200" />
+             <InterfaceAnalyzerMover name="ifa" scorefxn="ref2015" packstat="1" pack_separated="1" pack_input="1" tracer="0" interface_sc="1" interface="A_B"  />
+            </MOVERS>
+            <PROTOCOLS>
+                        <Add mover_name="mutate"/>
+                        <Add mover_name="mutate2" />
+                        <Add mover_name="mutate3" />
+                        <Add mover_name="mutate4" />
+                        <Add mover_name="ppk"/>
+                        <Add mover_name="sc_bb_min"/>
+                        <Add mover_name="ifa" />
+                                </PROTOCOLS>
+                        </ROSETTASCRIPTS>
