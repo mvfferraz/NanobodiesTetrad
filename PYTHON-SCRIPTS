@@ -1,0 +1,145 @@
+------------> READING FILES
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt 
+
+df = pd.read_csv('file.csv', names=['SCORE:','total_score','dslf_fa13','fa_atr','fa_dun','fa_elec','fa_intra_rep','fa_intra_sol_xover4','fa_rep','fa_sol','hbond_bb_sc','hbond_lr_bb','hbond_sc','hbond_sr_bb','lk_ball_wtd','omega','p_aa_pp','pro_close','rama_prepro','ref','yhh_planarity','description','target'])
+features = ['total_score','dslf_fa13', 'fa_atr','fa_dun','fa_elec','fa_intra_rep','fa_intra_sol_xover4','fa_rep','fa_sol','hbond_bb_sc','hbond_lr_bb','hbond_sc','hbond_sr_bb','lk_ball_wtd','omega','p_aa_pp','pro_close','rama_prepro','ref','yhh_planarity']
+X = df.loc[:, features].values
+y = df.loc[:,['target']].values
+
+from sklearn.preprocessing import StandardScaler
+X = StandardScaler().fit_transform(X)
+
+------------> FEATURES SELECTION
+
+from sklearn.ensemble import ExtraTreesClassifier 
+%matplotlib inline
+
+import seaborn as sns 
+import warnings
+warnings.filterwarnings("ignore")
+sns.set(style="dark", color_codes=True)
+
+model = ExtraTreesClassifier(n_estimators = 10, 
+                                        criterion ='entropy', max_features = 2)
+model.fit(X,y)
+print(model.feature_importances_) #use inbuilt class feature_importances of tree based classifiers
+#plot graph of feature importances for better visualization
+feat_importances = pd.Series(model.feature_importances_)
+feat_importances.nlargest(20).plot(kind='barh')
+sns.set_style("dark")
+
+------------> LINEAR DISCRIMINANT ANALYSIS
+
+y = np.ravel(y)
+
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+lda = LinearDiscriminantAnalysis(n_components=1)
+X_lda = lda.fit_transform(X, y)
+
+lda.explained_variance_ratio_
+
+------------> SVM
+
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.3, random_state=25)
+param_grid = {'C':[0.1,1,10,100,1000], 'gamma': [1,0.1,0.01,0.001,0.0001], 'kernel':['rbf', 'linear']}
+from sklearn.model_selection import GridSearchCV
+grid = GridSearchCV(SVC(),param_grid, refit=True, verbose=3)
+grid.fit(X_train,y_train)
+grid.best_params_
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.3, random_state=25)
+model = SVC(C=1, kernel='linear', probability=True)
+model.fit(X_train, y_train)
+model.score(X_test,y_test)
+
+------------> MLP
+
+pred = mlp.predict(X_test)
+from sklearn.metrics import classification_report,  confusion_matrix
+print (classification_report(y_test,pred))
+print ('\n')
+print (confusion_matrix(y_test, pred))
+from sklearn.neural_network import MLPClassifier
+mlp = MLPClassifier(hidden_layer_sizes=(1000),solver='sgd',learning_rate_init=0.01,max_iter=500)
+mlp.fit(X_train, y_train)
+mlp.score(X_test,y_test)
+
+------------> RANDOM FOREST
+from sklearn.tree import DecisionTreeClassifier
+tree = DecisionTreeClassifier(criterion="entropy")
+tree.fit(X_train, y_train)
+tree.score(X_test,y_test) # metrics.accuracy_score is an alternative
+
+
+------------> EVALUATION METRICS
+pred = mlp.predict(X_test)
+from sklearn.metrics import classification_report,  confusion_matrix
+print (classification_report(y_test,pred))
+print ('\n')
+print (confusion_matrix(y_test, pred))
+
+
+------------> CROSS VALIDATION
+from sklearn.model_selection import KFold
+scores = []
+best_svr = MLPClassifier(hidden_layer_sizes=(100),solver='sgd',learning_rate_init=0.01,max_iter=500)
+cv = KFold(n_splits=10)
+for train_index, test_index in cv.split(X):
+    print("Train Index: ", train_index, "\n")
+    print("Test Index: ", test_index)
+
+    X_train, X_test, y_train, y_test = X[train_index], X[test_index], y[train_index], y[test_index]
+    best_svr.fit(X_train, y_train)
+    scores.append(best_svr.score(X_test, y_test))
+print(np.mean(scores))
+
+------------> LEARNING CURVE
+
+from sklearn.model_selection import learning_curve
+from sklearn.model_selection import ShuffleSplit
+cv = ShuffleSplit(n_splits=10, random_state=25)
+train_sizes, train_scores, validation_scores = learning_curve(
+                                                   tree, X,
+                                                   y, cv = cv, n_jobs=10)
+train_scores_mean = np.mean(train_scores, axis=1)
+train_scores_std = np.std(train_scores, axis=1)
+validation_scores_mean = np.mean(validation_scores, axis=1)
+validation_scores_std = np.std(validation_scores, axis=1)
+plt.fill_between(train_sizes, train_scores_mean - train_scores_std, train_scores_mean + train_scores_std, alpha=0.1, color="lightgreen")
+plt.fill_between(train_sizes, validation_scores_mean - validation_scores_std, validation_scores_mean + validation_scores_std, alpha=0.1, color="b")
+plt.plot(train_sizes, train_scores_mean, 'o-', color="lightgreen", label="Training score")
+plt.plot(train_sizes, validation_scores_mean, 'o-', color="b", label="Cross-validation score")
+plt.xlabel("Number of training examples", fontsize=17)
+plt.ylabel("Score", fontsize=17)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+#plt.tight_layout()
+plt.legend()
+plt.show()
+
+------------> ROC AUC
+
+from sklearn.metrics import roc_auc_score
+from sklearn import metrics
+from sklearn.metrics import roc_curve, auc
+ns_probs = [0 for _ in range(len(y_test))]
+lr_probs = tree.predict_proba(X_test)
+lr_probs = lr_probs[:, 1]
+ns_auc = roc_auc_score(y_test, ns_probs)
+lr_auc = roc_auc_score(y_test, lr_probs)
+print('No Skill: ROC AUC=%.3f' % (ns_auc))
+print('Logistic: ROC AUC=%.3f' % (lr_auc))
+ns_fpr, ns_tpr, _ = roc_curve(y_test, ns_probs)
+lr_fpr, lr_tpr, _ = roc_curve(y_test, lr_probs)
+plt.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
+plt.plot(lr_fpr, lr_tpr, marker='.', label='RF')
+plt.xlabel('False Positive Rate', size=18)
+plt.ylabel('True Positive Rate')
+plt.legend()
+sns.set(style="white", color_codes=True)
+plt.show()
